@@ -20,6 +20,8 @@ interface VX_perf_memsys_if ();
     wire [`PERF_CTR_BITS-1:0] mem_writes;
     wire [`PERF_CTR_BITS-1:0] mem_latency;
 
+    wire [`PERF_CTR_BITS-1:0] req_dups; 
+
     modport master (
         output icache_reads,
         output icache_read_misses,

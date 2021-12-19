@@ -43,7 +43,7 @@ module VX_decode  #(
     reg [31:0]          imm;    
     reg use_rd, use_PC, use_imm;
     reg is_join, is_wstall;
-
+    reg is_prefetch;
     wire [31:0] instr = ifetch_rsp_if.data;
     wire [6:0] opcode = instr[6:0];  
     wire [1:0] func2  = instr[26:25];
@@ -79,6 +79,7 @@ module VX_decode  #(
         use_rd    = 0;
         is_join   = 0;
         is_wstall = 0;
+        is_prefetch = 0; 
 
         case (opcode)            
             `INST_I: begin
@@ -381,6 +382,7 @@ module VX_decode  #(
                     3'h5: begin
                         ex_type = `EX_LSU;
                         op_type = `INST_OP_BITS'(`INST_LSU_LW);
+                        is_prefetch = 1; 
                         op_mod  = `INST_MOD_BITS'(2);
                         `USED_IREG (rs1);
                     end
@@ -412,7 +414,7 @@ module VX_decode  #(
 
     // disable write to integer register r0
     wire wb = use_rd && (| rd_r);
-
+    assign decode_if.prefetch = is_prefetch; 
     assign decode_if.valid     = ifetch_rsp_if.valid;
     assign decode_if.uuid      = ifetch_rsp_if.uuid;
     assign decode_if.wid       = ifetch_rsp_if.wid;

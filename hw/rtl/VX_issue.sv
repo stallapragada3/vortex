@@ -75,6 +75,7 @@ module VX_issue #(
 
     // issue the instruction
     assign ibuffer_if.ready = scoreboard_if.ready && dispatch_if.ready;
+    //assign perf_issue_if.prefetch = ibuffer_if.prefetch; 
 
     `RESET_RELAY (ibuf_reset);
     `RESET_RELAY (scoreboard_reset);
@@ -108,7 +109,7 @@ module VX_issue #(
         .gpr_req_if   (gpr_req_if),
         .gpr_rsp_if   (gpr_rsp_if)
     );
-
+    
     VX_dispatch dispatch (
         .clk        (clk),      
         .reset      (dispatch_reset),

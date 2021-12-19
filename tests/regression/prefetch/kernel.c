@@ -35,6 +35,11 @@ void kernel_body(int task_id, kernel_arg_t* arg) {
 			vx_prefetch(src1_next);
 		}		
 	}
+
+	for (uint32_t i = 0; i < count; ++1) {
+		dst_ptr[offset + i] = src0_ptr[offset+i]+src1_ptr[offset+i];
+		vx_prefetch(src0_ptr + offset + i); 
+	}
 }
 
 void main() {

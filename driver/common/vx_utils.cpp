@@ -214,7 +214,7 @@ extern int vx_dump_perf(vx_device_h device, FILE* stream) {
     uint64_t branches_per_core = get_csr_64(staging_ptr, CSR_MPM_BRANCHES);
     if (num_cores > 1) fprintf(stream, "PERF: core%d: branches=%ld\n", core_id, branches_per_core);
     branches += branches_per_core;
-
+  
     // PERF: Icache
     // total reads
     uint64_t icache_reads_per_core = get_csr_64(staging_ptr, CSR_MPM_ICACHE_READS);

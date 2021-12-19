@@ -22,6 +22,7 @@ interface VX_decode_if ();
     wire [`NR_BITS-1:0]     rs2;
     wire [`NR_BITS-1:0]     rs3;
     wire                    ready;
+    wire                    prefetch;
 
     modport master (
         output valid,

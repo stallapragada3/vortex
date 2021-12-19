@@ -197,6 +197,9 @@
 `define INST_GPU_PRED        4'h5
 `define INST_GPU_TEX         4'h6
 `define INST_GPU_BITS        4
+`define INST_GPU_PREFETCH         4'h5
+`define INST_GPU_OTHER            4'h7
+`define INST_GPU_OP(x)            x[`INST_GPU_BITS-1:0]
 
 ///////////////////////////////////////////////////////////////////////////////
 

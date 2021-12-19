@@ -58,6 +58,9 @@ module VX_lsu_unit #(
 
     wire lsu_is_dup = lsu_req_if.tmask[0] && (& addr_matches);
 
+    reg is_prefetch = 0;
+    reg [`NUM_THREADS-1:0][31:0] load_address = full_addr;  
+
     for (genvar i = 0; i < `NUM_THREADS; i++) begin
         // is non-cacheable address
         wire is_addr_nc = (full_addr[i][MEM_ASHIFT +: MEM_ADDRW] >= MEM_ADDRW'(`IO_BASE_ADDR >> MEM_ASHIFT));
@@ -68,6 +71,18 @@ module VX_lsu_unit #(
             assign lsu_addr_type[i] = {is_addr_nc, is_addr_sm};
         end else begin
             assign lsu_addr_type[i] = is_addr_nc;
+        end
+    end
+
+    always@(*) begin 
+        if ((ready_in && req_valid && req_wb && !req_is_prefetch) || lsu_req_if.is_prefetch) begin
+            for (int i = 0; i < `NUM_THREADS; i++) begin
+                load_address[i] = req_addr[i] + 32'd4;
+            end
+            assign is_prefetch = 1'b1;
+        end else begin
+            load_address = full_addr;
+            assign is_prefetch = 1'b0; 
         end
     end
 
@@ -93,7 +108,7 @@ module VX_lsu_unit #(
     );
 
     // Can accept new request?
-    assign lsu_req_if.ready = ~stall_in && ~fence_wait;
+    assign lsu_req_if.ready = ~stall_in && (~(req_wb && (is_prefetch & ~req_is_prefetch)));
 
     wire [`UUID_BITS-1:0] rsp_uuid;
     wire [`NW_BITS-1:0] rsp_wid;
@@ -176,6 +191,21 @@ module VX_lsu_unit #(
             end
         end
     end
+
+    //Assignment 2 Code
+    `ifdef PERF_ENABLE
+    reg [43:0] req_dups;
+    always@(posedge clk) begin
+        if (reset) begin
+            req_dups <= 0;
+        end else if (req_valid & req_is_dup) begin
+            req_dups <= req_dups + 44'b1; 
+        end
+    end
+
+    assign perf_memsys_if.req_dups = req_dups;
+
+    `endif
 
     // need to hold the acquired tag index until the full request is submitted
     reg [`LSUQ_ADDR_BITS-1:0] req_tag_hold;
@@ -280,7 +310,8 @@ module VX_lsu_unit #(
     // send load commit
 
     wire load_rsp_stall = ~ld_commit_if.ready && ld_commit_if.valid;
-    
+    wire is_valid;
+    assign is_valid = (~rsp_is_prefetch && (| dcache_rsp_if.valid)); 
     VX_pipe_register #(
         .DATAW  (1 + `UUID_BITS + `NW_BITS + `NUM_THREADS + 32 + `NR_BITS + 1 + (`NUM_THREADS * 32) + 1),
         .RESETW (1)
@@ -365,6 +396,23 @@ module VX_lsu_unit #(
                 $time, CORE_ID, rsp_is_prefetch, rsp_wid, rsp_pc, dcache_rsp_if.tmask, mbuf_raddr, rsp_rd);
             `TRACE_ARRAY1D(dcache_rsp_if.data, `NUM_THREADS);
             dpi_trace(", is_dup=%b (#%0d)\n", rsp_is_dup, rsp_uuid);
+        end
+    end
+`endif
+
+`ifdef DBG_PRINT_CORE_DCACHE
+   always @(posedge clk) begin        
+        if ((| (dcache_req_if.valid & dcache_req_if.ready))) begin
+            if ((| dcache_req_if.rw))
+                $display("%t: D$%0d Wr Req: wid=%0d, PC=%0h, tmask=%b, addr=%0h, tag=%0h, byteen=%0h, data=%0h", 
+                    $time, CORE_ID, req_wid, req_pc, (dcache_req_if.valid & dcache_req_if.ready), req_addr, dcache_req_if.tag, dcache_req_if.byteen, dcache_req_if.data);
+            else
+                $display("%t: D$%0d Rd Req: wid=%0d, PC=%0h, tmask=%b, addr=%0h, tag=%0h, byteen=%0h, rd=%0d, is_dup=%b", 
+                    $time, CORE_ID, req_wid, req_pc, (dcache_req_if.valid & dcache_req_if.ready), req_addr, dcache_req_if.tag, dcache_req_if.byteen, req_rd, req_is_dup);
+        end
+        if ((| dcache_rsp_if.valid) && dcache_rsp_if.ready) begin
+            $display("%t: D$%0d Rsp: valid=%b, wid=%0d, PC=%0h, tag=%0h, rd=%0d, data=%0h, is_dup=%b", 
+                    $time, CORE_ID, dcache_rsp_if.valid, rsp_wid, rsp_pc, dcache_rsp_if.tag, rsp_rd, dcache_rsp_if.data, rsp_is_dup);
         end
     end
 `endif

@@ -198,7 +198,8 @@ module VX_ibuffer #(
             ibuffer_if.rd, 
             ibuffer_if.rs1, 
             ibuffer_if.rs2, 
-            ibuffer_if.rs3} = deq_instr;
+            ibuffer_if.rs3,
+            ibuffer_if.prefetch} = deq_instr;
 
     // scoreboard forwarding
     assign ibuffer_if.wid_n = deq_wid_n;
